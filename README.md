@@ -268,9 +268,10 @@ signing actions uses Phantom.
 cd app && python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
-A captioned 60-second walkthrough is in [`app/tutorial.mp4`](app/tutorial.mp4). On the
-site, the **"Verify it in 4 steps"** guide and a one-click **"Try the demo escrow"**
-button let anyone inspect a live devnet escrow without a wallet.
+An animated, narrated explainer (~40s, with voiceover and subtitles) is in
+[`app/tutorial.mp4`](app/tutorial.mp4) — it tells the deposit-trust story, then shows
+the live devnet flow. On the site, the **"Verify it in 4 steps"** guide and a one-click
+**"Try the demo escrow"** button let anyone inspect a live devnet escrow without a wallet.
 
 ![VEXL web app](app/screenshot.png)
 
