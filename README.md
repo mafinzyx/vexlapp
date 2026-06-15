@@ -255,6 +255,19 @@ deposit, files + settles a claim, then closes):
 yarn ts-node cli/token-demo.ts
 ```
 
+### Web dashboard
+
+A zero-build single-page app in [`app/`](app/) connects **Phantom** and drives the
+full SOL lifecycle, with a live read-only view of any escrow's on-chain state and a
+visual stage pipeline. Inspecting an escrow needs no wallet — it reads straight from
+devnet; creating or signing actions uses Phantom.
+
+```bash
+cd app && python3 -m http.server 8080   # then open http://localhost:8080
+```
+
+![dashboard](app/screenshot.png)
+
 ## Project layout
 
 ```
@@ -263,4 +276,5 @@ tests/deposit-escrow.ts              SOL-flow bankrun suite (16 tests)
 tests/token-escrow.ts                USDC-flow bankrun suite (4 tests)
 cli/index.ts                         devnet CLI for the SOL lifecycle
 cli/token-demo.ts                    devnet USDC lifecycle demo (mint → lock → claim → settle → close)
+app/                                 zero-build Phantom web dashboard (live state + lifecycle)
 ```

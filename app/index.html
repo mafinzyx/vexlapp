@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deposit Escrow — Solana devnet</title>
+<style>
+  :root {
+    --bg: #0b0d12; --panel: #14171f; --panel2: #1b1f2a; --line: #262b38;
+    --text: #e7ebf3; --muted: #8b93a7; --accent: #14f195; --accent2: #9945ff;
+    --warn: #ffb454; --bad: #ff5c7c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #1a1340 0%, var(--bg) 55%);
+    color: var(--text); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.02em; }
+  h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .badge { font-size: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+  button {
+    font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel2);
+    color: var(--text); padding: 9px 14px; border-radius: 10px; transition: .15s;
+  }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: linear-gradient(90deg, var(--accent), #19c47f); border: none; color: #06281c; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .card h2 { margin: 0 0 14px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; }
+  input {
+    width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line);
+    background: #0e1118; color: var(--text); font: inherit;
+  }
+  input:focus { outline: none; border-color: var(--accent2); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: var(--muted); }
+  .state { font-weight: 700; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
+  .s-active { background: #0e3b2c; color: var(--accent); }
+  .s-claimfiled { background: #3b300e; color: var(--warn); }
+  .s-disputed { background: #3b0e1c; color: var(--bad); }
+  .s-settled, .s-released { background: #1c2330; color: var(--muted); }
+  .pipeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .step { font-size: 11px; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--line); color: var(--muted); }
+  .step.on { border-color: var(--accent); color: var(--accent); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .log { margin-top: 22px; background: #0e1118; border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-height: 48px; font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+  a { color: var(--accent); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .pill { display:inline-block; width:9px; height:9px; border-radius:50%; background: var(--bad); margin-right:6px; vertical-align: middle; }
+  .pill.ok { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span>Deposit Escrow</span> — rental security deposits on Solana</h1>
+      <div class="sub">Non-custodial. The deposit lives in a program-controlled vault PDA, released only by on-chain rules.</div>
+    </div>
+    <div style="text-align:right">
+      <span class="badge">devnet</span>
+      <div style="margin-top:8px"><button id="connect">Connect Phantom</button></div>
+      <div class="sub mono" id="wallet"></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Create escrow (tenant)</h2>
+      <label>Landlord address</label>
+      <input id="c-landlord" class="mono" placeholder="landlord pubkey" />
+      <div class="row">
+        <div><label>Deposit (SOL)</label><input id="c-amount" value="0.1" /></div>
+        <div><label>Lease (days)</label><input id="c-lease" value="30" /></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="create" disabled>Lock deposit</button>
+      </div>
+      <div class="hint">Connect Phantom first. You (the connected wallet) are the tenant.</div>
+    </div>
+
+    <div class="card">
+      <h2>Inspect escrow</h2>
+      <label>Landlord address</label>
+      <input id="i-landlord" class="mono" placeholder="landlord pubkey" />
+      <label>Tenant address</label>
+      <input id="i-tenant" class="mono" placeholder="tenant pubkey" />
+      <div class="actions">
+        <button id="load">Load state</button>
+        <button id="usemine" disabled>Use my wallet as tenant</button>
+      </div>
+      <div id="state"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h2>Lifecycle actions</h2>
+    <div class="sub">Buttons enable based on the loaded escrow's state and your connected wallet's role.</div>
+    <div class="actions" id="lifecycle">
+      <button data-act="file_claim" disabled>File claim (landlord)</button>
+      <button data-act="accept" disabled>Accept claim (tenant)</button>
+      <button data-act="dispute" disabled>Dispute (tenant)</button>
+      <button data-act="timeout" disabled>Claim timeout (anyone)</button>
+      <button data-act="release" disabled>Release (anyone)</button>
+      <button data-act="close" disabled>Close &amp; reclaim rent</button>
+    </div>
+    <div class="hint" id="claim-hint" style="display:none">
+      <label>Claim amount (SOL)</label><input id="claim-amt" value="0.05" style="max-width:180px" />
+    </div>
+  </div>
+
+  <div class="log" id="log">Ready. Connect Phantom to create or sign, or just load any escrow to inspect it read-only.</div>
+
+  <div class="sub" style="margin-top:18px">
+    Program <span class="mono" id="pid"></span> ·
+    <a id="pid-link" target="_blank">view on Explorer</a>
+  </div>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
