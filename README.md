@@ -255,7 +255,7 @@ deposit, files + settles a claim, then closes):
 yarn ts-node cli/token-demo.ts
 ```
 
-### Web app — "Keyhold"
+### Web app — "VEXL"
 
 A zero-build single-page product site in [`app/`](app/) — warm proptech design
 (editorial serif, paper palette, house-and-key motif) that makes the rental context
@@ -268,7 +268,7 @@ signing actions uses Phantom.
 cd app && python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
-![Keyhold web app](app/screenshot.png)
+![VEXL web app](app/screenshot.png)
 
 ## Project layout
 
