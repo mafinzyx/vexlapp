@@ -1,4 +1,4 @@
-# Deposit Escrow — trustless rental security deposits on Solana
+# VEXL — trustless rental security deposits on Solana
 
 A non-custodial escrow for rental security deposits, written as an on-chain Rust
 (Anchor) program. The tenant's deposit is locked in a program-controlled vault —
@@ -7,8 +7,16 @@ released only by rules enforced on-chain.
 
 > Built for the *"Build Everyday Real-World Systems as On-Chain Rust Programs"* challenge.
 
-- **Program ID (devnet):** [`Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm`](https://explorer.solana.com/address/Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm?cluster=devnet)
-- **Status:** deployed to devnet, full lifecycle verified with real transactions (links below)
+**Live:** [vexlapp.vercel.app](https://vexlapp.vercel.app/) ·
+**Program (devnet):** [`Em436Qu…o2hYm`](https://explorer.solana.com/address/Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm?cluster=devnet)
+
+## Highlights
+
+- 🪙 **SOL *and* USDC.** A deposit is a fiat amount, so it can be held in a stablecoin — **14 instructions**: a full native-SOL flow *plus* a parallel SPL-token flow.
+- 🌐 **Live & verified on devnet.** Both flows run end-to-end with real transactions (links below), behind a deployed [web app](https://vexlapp.vercel.app/) with Phantom.
+- 🔒 **2-PDA, non-custodial.** The deposit sits in a program-controlled vault no party can move — and there are **no fund-theft vectors** (see [Security](#security)).
+- ✅ **20 bankrun tests.** Every instruction plus adversarial paths, time-warped to cover the lease-end, claim-window, and grace locks.
+- ⚙️ **Production-leaning.** Events for indexers, permissionless cranks, rent reclamation, and an honest dispute design.
 
 ---
 
