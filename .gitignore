@@ -1,4 +1,18 @@
-docs/superpowers/
+# Anchor / Rust build artifacts
+.anchor
+target
+**/*.rs.bk
+
+# Node
+node_modules
+.yarn
+
+# Solana
+test-ledger
+
+# OS
 .DS_Store
 
+# Local-only: implementation plan and generated devnet keypair
+docs/superpowers/
 cli/landlord.json
