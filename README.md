@@ -268,12 +268,6 @@ signing actions uses Phantom.
 cd app && python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
-**Deploy it (Vercel, one click).** The repo ships a `vercel.json` that serves `app/`
-as a static site — no build, no install. Import the repo on Vercel and hit Deploy;
-you get a public `*.vercel.app` URL (HTTPS, so Phantom connects out of the box).
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mafinzyx/vexlapp)
-
 On the site, the **"Verify it in 4 steps"** guide and a one-click **"Try the demo
 escrow"** button let anyone inspect a live devnet escrow without a wallet. A short
 animated walkthrough is on X — see [@vexllapp](https://x.com/vexllapp).
