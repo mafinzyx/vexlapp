@@ -222,51 +222,12 @@ token-escrow (USDC-like)
 
 ---
 
-## Run it yourself
+## Try it live
 
-Prerequisites: Rust, Solana CLI, Anchor (`anchor-cli` 1.0.2), Node/yarn.
-
-```bash
-# build the program + generate the IDL
-anchor build
-
-# run the full test suite (no validator needed — bankrun runs in-process)
-yarn test
-```
-
-Drive the live program on devnet with the CLI (the default Solana wallet acts as the
-tenant; a landlord keypair is generated at `cli/landlord.json`):
-
-```bash
-yarn cli init 0.2 30        # tenant locks 0.2 SOL, lease ends in 30s
-yarn cli fund-landlord 0.05 # give the landlord SOL for fees
-yarn cli show               # inspect on-chain escrow state
-# after lease_end:
-yarn cli file-claim 0.08    # landlord claims 0.08 SOL for damage
-yarn cli accept             # tenant accepts → deposit split
-yarn cli close              # reclaim the data account's rent for the tenant
-# alternatives: yarn cli dispute | yarn cli timeout | yarn cli release
-```
-
-Run the **USDC** lifecycle end-to-end on devnet (creates a mint, locks a token
-deposit, files + settles a claim, then closes):
-
-```bash
-yarn ts-node cli/token-demo.ts
-```
-
-### Web app — "VEXL"
-
-A zero-build single-page product site in [`app/`](app/) — warm proptech design
-(editorial serif, paper palette, house-and-key motif) that makes the rental context
-obvious at a glance. It connects **Phantom** and drives the full SOL lifecycle, with a
-live read-only view of any escrow's on-chain state and a visual stage pipeline.
-Inspecting an escrow needs no wallet — it reads straight from devnet; creating or
-signing actions uses Phantom.
-
-```bash
-cd app && python3 -m http.server 8080   # then open http://localhost:8080
-```
+The **VEXL** web app is deployed on Vercel — open the live URL and use it right away,
+no setup. It connects **Phantom** and drives the full SOL lifecycle, with a live
+read-only view of any escrow's on-chain state and a visual stage pipeline. Inspecting
+an escrow needs no wallet — it reads straight from devnet; signing actions uses Phantom.
 
 On the site, the **"Verify it in 4 steps"** guide and a one-click **"Try the demo
 escrow"** button let anyone inspect a live devnet escrow without a wallet. A short
