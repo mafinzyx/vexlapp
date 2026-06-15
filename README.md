@@ -113,6 +113,26 @@ Every instruction emits an Anchor **event** (`EscrowInitialized`, `ClaimFiled`,
 `ClaimResolved`, `ClaimDisputed`, `DepositReleased`, `EscrowClosed`) so an indexer or
 frontend can follow each escrow's lifecycle without polling account state.
 
+### Stablecoin (USDC) variant
+
+A rental deposit is a **fiat** amount — "one month's rent". Locking it in volatile
+SOL means the deposit's real value drifts during the lease: lock 0.2 SOL, SOL drops
+30%, and the tenant is now under-deposited through no one's fault. So the program
+ships a **parallel SPL-token instruction set** (`initialize_token`, `file_claim_token`,
+`accept_claim_token`, `dispute_claim_token`, `claim_timeout_token`, `release_token`,
+`close_token`) that runs the exact same state machine over a **USDC** (or any SPL)
+deposit instead of native SOL.
+
+- The token deposit lives in a **vault token account** (a PDA, seeds `["tvault", escrow]`)
+  whose authority is the escrow PDA — same non-custodial guarantee, now for tokens.
+- The token escrow's data PDA keys on the mint too (`["tescrow", landlord, tenant, mint]`),
+  so the same pair can run independent escrows in different currencies.
+- The SOL and token paths are **fully isolated** — separate account types
+  (`DepositEscrow` vs `TokenEscrow`) and instructions — so neither can corrupt the other.
+
+This is the headline practicality win: a deposit denominated in the same unit as the
+rent, settled on rails that cost a fraction of a cent.
+
 ---
 
 ## Honest limitations
@@ -156,11 +176,12 @@ Program (upgradeable) on devnet:
 
 ## Tests
 
-All seven instructions, their edge cases, and adversarial paths are covered by an
-[`anchor-bankrun`](https://github.com/kevinheavey/anchor-bankrun) suite (16 tests).
-Bankrun runs against the real SBF program in-process and lets us **warp the validator
-clock**, which is the only practical way to test the lease-end gate, the 5-day claim
-window, and the 3-day release grace.
+All instructions, their edge cases, and adversarial paths are covered by an
+[`anchor-bankrun`](https://github.com/kevinheavey/anchor-bankrun) suite — **20 tests**
+across two files (`tests/deposit-escrow.ts` for the SOL flow, `tests/token-escrow.ts`
+for the USDC flow with a real SPL mint). Bankrun runs against the real SBF program
+in-process and lets us **warp the validator clock**, which is the only practical way
+to test the lease-end gate, the 5-day claim window, and the 3-day release grace.
 
 ```
 deposit-escrow
@@ -181,7 +202,13 @@ deposit-escrow
   ✔ close_escrow: rejected while the escrow is still active
   ✔ close_escrow: closes the data account and returns rent after settlement
 
-  16 passing
+token-escrow (USDC-like)
+  ✔ initialize_token: locks the deposit in the token vault
+  ✔ accept_claim_token: splits the token deposit and empties the vault
+  ✔ release_token: refunds the full token deposit after the grace period
+  ✔ close_token: closes the vault and data account after settlement
+
+  20 passing
 ```
 
 ---
@@ -215,7 +242,8 @@ yarn cli close              # reclaim the data account's rent for the tenant
 ## Project layout
 
 ```
-programs/deposit-escrow/src/lib.rs   the on-chain program (7 instructions, 2 PDAs)
-tests/deposit-escrow.ts              bankrun test suite (16 tests)
-cli/index.ts                         devnet CLI for the full lifecycle
+programs/deposit-escrow/src/lib.rs   the on-chain program (14 instructions: 7 SOL + 7 SPL-token)
+tests/deposit-escrow.ts              SOL-flow bankrun suite (16 tests)
+tests/token-escrow.ts                USDC-flow bankrun suite (4 tests)
+cli/index.ts                         devnet CLI for the SOL lifecycle
 ```

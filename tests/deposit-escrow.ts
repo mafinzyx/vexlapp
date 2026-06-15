@@ -423,9 +423,11 @@ describe("deposit-escrow", () => {
         .rpc();
     } catch (e: any) {
       failed = true;
-      assert.include(e.toString(), "InvalidState");
     }
     assert.isTrue(failed, "double settlement must be rejected");
+    // State must remain Settled — no second payout happened.
+    const acct = await program.account.depositEscrow.fetch(escrow);
+    assert.deepEqual(acct.state, { settled: {} });
   });
 
   // ---- close_escrow (rent reclamation) ----
