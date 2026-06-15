@@ -88,7 +88,10 @@ pub mod deposit_escrow {
 
         let escrow_key = escrow.key();
         let claim_amount = escrow.claim_amount;
-        let refund_amount = escrow.amount.checked_sub(claim_amount).unwrap();
+        let refund_amount = escrow
+            .amount
+            .checked_sub(claim_amount)
+            .ok_or(EscrowError::MathOverflow)?;
         let vault_bump = escrow.vault_bump;
 
         vault_pay(
@@ -151,7 +154,10 @@ pub mod deposit_escrow {
 
         let escrow_key = escrow.key();
         let claim_amount = escrow.claim_amount;
-        let refund_amount = escrow.amount.checked_sub(claim_amount).unwrap();
+        let refund_amount = escrow
+            .amount
+            .checked_sub(claim_amount)
+            .ok_or(EscrowError::MathOverflow)?;
         let vault_bump = escrow.vault_bump;
 
         vault_pay(
@@ -315,7 +321,10 @@ pub mod deposit_escrow {
             (escrow.landlord, escrow.tenant, escrow.mint, escrow.bump);
         let escrow_key = escrow.key();
         let claim = escrow.claim_amount;
-        let refund = escrow.amount.checked_sub(claim).unwrap();
+        let refund = escrow
+            .amount
+            .checked_sub(claim)
+            .ok_or(EscrowError::MathOverflow)?;
 
         let seeds: &[&[u8]] = &[
             b"tescrow",
@@ -385,7 +394,10 @@ pub mod deposit_escrow {
             (escrow.landlord, escrow.tenant, escrow.mint, escrow.bump);
         let escrow_key = escrow.key();
         let claim = escrow.claim_amount;
-        let refund = escrow.amount.checked_sub(claim).unwrap();
+        let refund = escrow
+            .amount
+            .checked_sub(claim)
+            .ok_or(EscrowError::MathOverflow)?;
 
         let seeds: &[&[u8]] = &[
             b"tescrow",
@@ -965,4 +977,6 @@ pub enum EscrowError {
     TooEarlyToRelease,
     #[msg("Escrow can only be closed from a terminal state (Settled or Released)")]
     NotClosable,
+    #[msg("Arithmetic overflow")]
+    MathOverflow,
 }

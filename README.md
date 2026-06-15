@@ -153,7 +153,27 @@ So this program does **not** pretend to adjudicate damage. What it does:
 
 A future version could add a designated arbiter key or an escrow-DAO vote to resolve
 `Disputed` on-chain — deliberately out of scope here, because a half-built "trustless
-judge" is worse than an honest hand-off.
+judge" is worse than an honest hand-off. Crucially, a disputed deposit is **never at
+risk** — it stays locked in the vault, fully accounted, until the parties resolve it.
+
+---
+
+## Security
+
+The program was written defensively and reviewed against the usual Solana attack
+classes. Funds cannot be stolen or misdirected:
+
+- **Every payout recipient is double-bound.** The landlord, tenant, and each token
+  account are pinned by the escrow's PDA seeds *and* `has_one` constraints. Even the
+  permissionless cranks (`claim_timeout`, `release`, `close_*`) can't redirect funds —
+  substituting any account changes the derived escrow PDA, so the transaction fails.
+- **Payout math uses the stored deposit amount, not the live vault balance** — so
+  donating or pre-funding the vault can't skew a split.
+- **Token ATAs are constrained by `token::mint` and `token::authority`**, so a payout
+  can't be routed to an attacker's token account or a wrong mint.
+- **Bumps are stored at init and re-validated** on every call; double-init and
+  double-settle are blocked by the state machine; time checks have no off-by-one.
+- **Checked arithmetic** everywhere money moves (no silent wraps, no panics).
 
 ---
 
