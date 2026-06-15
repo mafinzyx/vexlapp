@@ -16,3 +16,7 @@ test-ledger
 # Local-only: implementation plan and generated devnet keypair
 docs/superpowers/
 cli/landlord.json
+
+# marketing video — not committed
+app/tutorial.mp4
+*.mp4
