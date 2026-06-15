@@ -113,9 +113,26 @@
   .note{ background:var(--clay-tint); border:1px solid #e7c6b2; border-radius:16px; padding:22px 24px; }
   .note h3{ margin:0 0 6px; font-size:16px; }
   .note p{ margin:0; color:#7a4a33; font-size:14px; }
+
+  .notice-toast{ position:fixed; top:0; left:0; right:0; z-index:60; background:var(--forest); color:#f5efe4;
+    text-align:center; padding:13px 18px; font-size:14.5px; transform:translateY(-110%); transition:transform .32s ease; box-shadow:0 6px 24px var(--shadow); }
+  .notice-toast.show{ transform:translateY(0); }
+  .notice-toast a{ color:#fff; text-decoration:underline; font-weight:600; }
+  .notice-toast .x{ position:absolute; right:16px; top:11px; cursor:pointer; opacity:.8; }
+
+  .guide{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px 24px; margin-bottom:18px;
+    display:grid; grid-template-columns:1.4fr 1fr; gap:22px; align-items:center; }
+  @media (max-width:820px){ .guide{ grid-template-columns:1fr; } }
+  .guide ol{ margin:0; padding-left:20px; } .guide li{ margin:7px 0; font-size:14px; }
+  .guide li b{ color:var(--ink); }
+  .guide .tut{ background:var(--forest-tint); border:1px solid #c7ddd4; border-radius:14px; padding:18px; text-align:center; }
+  .guide .tut .play{ font-size:30px; } .guide .tut h4{ margin:6px 0 4px; font-size:15px; }
+  .guide .tut p{ margin:0 0 12px; font-size:13px; color:var(--muted); }
 </style>
 </head>
 <body>
+
+<div id="notice" class="notice-toast"><span id="notice-text"></span><span class="x" onclick="document.getElementById('notice').classList.remove('show')">✕</span></div>
 
 <div class="wrap">
   <nav>
@@ -209,6 +226,24 @@
       <p>Reading state needs no wallet — it pulls straight from Solana devnet. Creating or signing uses Phantom.</p>
     </div>
 
+    <div class="guide">
+      <div>
+        <h3 class="ch" style="margin-bottom:10px">Verify it in 4 steps</h3>
+        <ol>
+          <li>Install <a href="https://phantom.app/" target="_blank"><b>Phantom</b></a>, then in Phantom set the network to <b>Devnet</b> (Settings → Developer Settings → Testnet Mode / Devnet).</li>
+          <li>Grab free devnet SOL from <a href="https://faucet.solana.com/" target="_blank"><b>faucet.solana.com</b></a>.</li>
+          <li>Click <b>Connect Phantom</b> (top right).</li>
+          <li>Hit <b>Try the demo escrow</b> below to inspect a live one — or lock your own deposit.</li>
+        </ol>
+      </div>
+      <div class="tut">
+        <div class="play">📺</div>
+        <h4>60-second tutorial</h4>
+        <p>Watch the full walkthrough.</p>
+        <a class="" href="https://x.com/vexllapp" target="_blank"><button class="primary">Watch on X</button></a>
+      </div>
+    </div>
+
     <div class="grid">
       <div class="card">
         <h3 class="ch">Open an escrow</h3>
@@ -231,6 +266,7 @@
         <label>Tenant address</label>
         <input id="i-tenant" class="mono" placeholder="tenant pubkey" />
         <div class="actions">
+          <button class="primary" id="demo">Try the demo escrow</button>
           <button id="load">Load state</button>
           <button id="usemine" disabled>Use my wallet</button>
         </div>

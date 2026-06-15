@@ -17,6 +17,18 @@ const $ = (id) => document.getElementById(id);
 const log = (msg) => { $("log").textContent = msg; };
 const txLink = (s) => `https://explorer.solana.com/tx/${s}?cluster=devnet`;
 
+function notice(html, ms = 0) {
+  $("notice-text").innerHTML = html;
+  $("notice").classList.add("show");
+  if (ms) setTimeout(() => $("notice").classList.remove("show"), ms);
+}
+
+// A known, live devnet escrow for one-click inspection.
+const DEMO = {
+  landlord: "C8X8rngqPPE283w5AA9eUGHnCDaDmuDWs4kpZTrLLaii",
+  tenant: "GuCk8T72uK2XmepqMW49ZciEtdkWRAchK7L6kiQ4U3FU",
+};
+
 async function boot() {
   IDL = await (await fetch("./idl.json")).json();
   PROGRAM_ID = new PublicKey(IDL.address);
@@ -49,21 +61,35 @@ function pdas(landlord, tenant) {
 
 // ---------- wallet ----------
 $("connect").onclick = async () => {
-  const provider = window.solana;
-  if (!provider || !provider.isPhantom) {
-    log("Phantom wallet not found. Install it from phantom.app, then reload.");
-    return;
+  try {
+    const provider = window.solana;
+    if (!provider || !provider.isPhantom) {
+      notice('Phantom not detected. <a href="https://phantom.app/" target="_blank">Install Phantom</a>, switch it to <b>Devnet</b>, then reload this page.');
+      return;
+    }
+    const res = await provider.connect();
+    wallet = {
+      publicKey: res.publicKey,
+      signTransaction: (tx) => provider.signTransaction(tx),
+      signAllTransactions: (txs) => provider.signAllTransactions(txs),
+    };
+    const addr = res.publicKey.toBase58();
+    $("wallet").textContent = addr.slice(0, 4) + "…" + addr.slice(-4);
+    $("connect").textContent = "Connected";
+    $("create").disabled = false;
+    $("usemine").disabled = false;
+    notice("Wallet connected ✓ Make sure Phantom is on <b>Devnet</b>.", 4000);
+    log("Connected as " + addr + ". You are the tenant for new escrows.");
+  } catch (e) {
+    notice("Connection cancelled or failed: " + (e.message || e), 5000);
   }
-  const res = await provider.connect();
-  wallet = {
-    publicKey: res.publicKey,
-    signTransaction: (tx) => provider.signTransaction(tx),
-    signAllTransactions: (txs) => provider.signAllTransactions(txs),
-  };
-  $("wallet").textContent = res.publicKey.toBase58();
-  $("create").disabled = false;
-  $("usemine").disabled = false;
-  log("Connected. You are the tenant for new escrows.");
+};
+
+// One-click: inspect a known live escrow.
+$("demo").onclick = () => {
+  $("i-landlord").value = DEMO.landlord;
+  $("i-tenant").value = DEMO.tenant;
+  loadState();
 };
 
 $("usemine").onclick = () => {
