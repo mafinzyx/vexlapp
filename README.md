@@ -169,6 +169,15 @@ end-to-end with real SOL on devnet:
 | `accept_claim` | tenant accepts → 0.05 to landlord, 0.10 back to tenant | [`2YMkC1…sLAeQek`](https://explorer.solana.com/tx/2YMkC1nZYqrvixvs6e8AQJbdHFWwrdR7FkQXBmkPTyLjk2xDXMiTrXJZHx9AwAMa1P8REMD3KxwTSLBLxsLAeQek?cluster=devnet) |
 | `close_escrow` | data account closed, rent returned to tenant | [`2qrKXM…ZHafCLj`](https://explorer.solana.com/tx/2qrKXMixJjEpV8DjL6tvshNd2CbUiYXc363wSMH5AUMafWCigQJrpZm9Dv4QvkMXaX6NA6uBvtWvTipzVZHafCLj?cluster=devnet) |
 
+And the **USDC variant**, run end-to-end with a real SPL mint on devnet:
+
+| Step | What happened | Transaction |
+|---|---|---|
+| `initialize_token` | tenant locks 50 USDC | [`5aPnzF…f98bN`](https://explorer.solana.com/tx/5aPnzFPSmaHfuzbdMYEfyqSqPLSSLMDCSrrARmzKAD26FJSDVW8aSSpqaako5mhFNZhhxDGVq7QehbhjjTWf98bN?cluster=devnet) |
+| `file_claim_token` | landlord claims 20 USDC | [`4oB39F…aNGx6`](https://explorer.solana.com/tx/4oB39F8ZKoXkqmnm4tARQbAs74H5NsyDWm52JxZnT3ezQPmHaFkskjDa2hU1B4StZYLSFnKSqcr1RGEvXVNaNGx6?cluster=devnet) |
+| `accept_claim_token` | 20 → landlord, 30 → tenant | [`tUwP2F…Kb6XH`](https://explorer.solana.com/tx/tUwP2FgVX5Z3A939VQ1XfWSEkC2RDJNyw1heVFwGDi1AqoDQX3XEuMKvNCexcJreCsAXDVa9VzrP8MSgyVKb6XH?cluster=devnet) |
+| `close_token` | vault + data account closed, rent reclaimed | [`5dLeFt…KmPM7`](https://explorer.solana.com/tx/5dLeFtMZ8E7poUBdyaQYmYQRTzwi4jrhP8M3dGbZCYinrAbh3pV26UfARG5EtsGKxTxpBThuGDabEazmiknKmPM7?cluster=devnet) |
+
 Program (upgradeable) on devnet:
 [`Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm`](https://explorer.solana.com/address/Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm?cluster=devnet)
 
@@ -239,6 +248,13 @@ yarn cli close              # reclaim the data account's rent for the tenant
 # alternatives: yarn cli dispute | yarn cli timeout | yarn cli release
 ```
 
+Run the **USDC** lifecycle end-to-end on devnet (creates a mint, locks a token
+deposit, files + settles a claim, then closes):
+
+```bash
+yarn ts-node cli/token-demo.ts
+```
+
 ## Project layout
 
 ```
@@ -246,4 +262,5 @@ programs/deposit-escrow/src/lib.rs   the on-chain program (14 instructions: 7 SO
 tests/deposit-escrow.ts              SOL-flow bankrun suite (16 tests)
 tests/token-escrow.ts                USDC-flow bankrun suite (4 tests)
 cli/index.ts                         devnet CLI for the SOL lifecycle
+cli/token-demo.ts                    devnet USDC lifecycle demo (mint → lock → claim → settle → close)
 ```
