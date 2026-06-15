@@ -8,11 +8,14 @@ skip-lint = false
 [programs.localnet]
 deposit_escrow = "Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm"
 
+[programs.devnet]
+deposit_escrow = "Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
