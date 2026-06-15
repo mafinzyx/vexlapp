@@ -3,130 +3,270 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Deposit Escrow — Solana devnet</title>
+<title>Keyhold — your deposit, held by code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0b0d12; --panel: #14171f; --panel2: #1b1f2a; --line: #262b38;
-    --text: #e7ebf3; --muted: #8b93a7; --accent: #14f195; --accent2: #9945ff;
-    --warn: #ffb454; --bad: #ff5c7c;
+    --paper:#f5efe4; --paper2:#efe7d8; --card:#fbf7ef; --ink:#221d17; --muted:#6f6557;
+    --line:#e2d7c4; --forest:#2f5d50; --forest-tint:#dce9e3; --clay:#c0613b; --clay-tint:#f3ddd0;
+    --amber:#b07d2b; --amber-tint:#f0e3c6; --bad:#a23b3b; --bad-tint:#f0d6d3; --shadow:rgba(60,45,25,.10);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
   body {
-    margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #1a1340 0%, var(--bg) 55%);
-    color: var(--text); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-    min-height: 100vh;
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-weight:450; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
   }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -.02em; }
-  h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
-  .badge { font-size: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+  .serif { font-family:"Fraunces",Georgia,serif; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 24px; }
+  a { color:var(--forest); text-decoration:none; }
+  a:hover { text-decoration:underline; }
   button {
-    font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel2);
-    color: var(--text); padding: 9px 14px; border-radius: 10px; transition: .15s;
+    font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink);
+    padding:11px 18px; border-radius:12px; transition:transform .12s ease, border-color .15s, background .15s, box-shadow .15s;
   }
-  button:hover { border-color: var(--accent); }
-  button:disabled { opacity: .4; cursor: not-allowed; }
-  button.primary { background: linear-gradient(90deg, var(--accent), #19c47f); border: none; color: #06281c; font-weight: 600; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
-  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
-  .card h2 { margin: 0 0 14px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; }
+  button:hover { border-color:var(--forest); transform:translateY(-1px); box-shadow:0 6px 18px var(--shadow); }
+  button:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  button.primary { background:var(--forest); border-color:var(--forest); color:#f5efe4; font-weight:600; }
+  button.primary:hover { background:#26493f; }
+  button.ghost { background:transparent; }
+
+  /* top nav */
+  nav { display:flex; align-items:center; justify-content:space-between; padding:22px 0; }
+  .brand { display:flex; align-items:center; gap:11px; font-weight:600; font-size:18px; }
+  .brand .mark { width:30px; height:30px; }
+  .nav-right { display:flex; align-items:center; gap:14px; }
+  .pill { font-size:12.5px; color:var(--muted); border:1px solid var(--line); padding:4px 11px; border-radius:999px; background:var(--card); }
+  .wallet-addr { font-size:12px; color:var(--muted); font-family:ui-monospace,Menlo,monospace; }
+
+  /* hero */
+  .hero { padding:54px 0 36px; display:grid; grid-template-columns:1.15fr .85fr; gap:40px; align-items:center; }
+  @media (max-width:860px){ .hero{ grid-template-columns:1fr; padding-top:24px; } }
+  .eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--forest); background:var(--forest-tint); padding:5px 12px; border-radius:999px; font-weight:500; }
+  h1.title { font-size:clamp(38px,6vw,62px); line-height:1.02; letter-spacing:-.02em; margin:18px 0 16px; font-weight:600; }
+  h1.title em { font-style:italic; color:var(--clay); }
+  .lead { font-size:18px; color:var(--muted); max-width:30em; }
+  .cta-row { display:flex; gap:12px; margin-top:26px; flex-wrap:wrap; }
+  .trust { display:flex; gap:26px; margin-top:30px; flex-wrap:wrap; }
+  .trust div { font-size:13px; color:var(--muted); }
+  .trust b { display:block; font-family:"Fraunces",serif; font-size:21px; color:var(--ink); font-weight:600; }
+
+  /* hero art */
+  .art { position:relative; }
+  .art .house { width:100%; filter:drop-shadow(0 18px 40px var(--shadow)); }
+  .floatkey { position:absolute; right:-6px; bottom:6px; width:42%; animation:bob 5s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{ transform:translateY(0) rotate(-4deg);} 50%{ transform:translateY(-10px) rotate(-1deg);} }
+
+  /* sections */
+  section { padding:46px 0; }
+  .sec-head { max-width:34em; margin-bottom:30px; }
+  .sec-head .kicker { font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--clay); font-weight:600; }
+  .sec-head h2 { font-size:clamp(26px,3.6vw,38px); letter-spacing:-.01em; margin:10px 0 8px; font-weight:600; }
+  .sec-head p { color:var(--muted); margin:0; }
+
+  .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  @media (max-width:860px){ .steps{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px){ .steps{ grid-template-columns:1fr; } }
+  .step { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; }
+  .step .n { font-family:"Fraunces",serif; font-size:14px; color:var(--clay); font-weight:600; }
+  .step .ic { width:34px; height:34px; margin:6px 0 12px; color:var(--forest); }
+  .step h3 { font-size:16px; margin:0 0 6px; font-weight:600; }
+  .step p { font-size:14px; color:var(--muted); margin:0; }
+
+  /* app panel */
+  .app { background:linear-gradient(180deg,var(--paper2),var(--paper)); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:820px){ .grid{ grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 1px 0 rgba(255,255,255,.6) inset; }
+  .card h3.ch { margin:0 0 4px; font-size:17px; font-weight:600; }
+  .card .csub { color:var(--muted); font-size:13px; margin:0 0 14px; }
+  label { display:block; font-size:12.5px; color:var(--muted); margin:13px 0 5px; font-weight:500; }
   input {
-    width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line);
-    background: #0e1118; color: var(--text); font: inherit;
+    width:100%; padding:11px 13px; border-radius:11px; border:1px solid var(--line);
+    background:#fffdf9; color:var(--ink); font:inherit; transition:border-color .15s;
   }
-  input:focus { outline: none; border-color: var(--accent2); }
-  .row { display: flex; gap: 10px; }
-  .row > * { flex: 1; }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
-  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
-  .kv:last-child { border-bottom: none; }
-  .kv .k { color: var(--muted); }
-  .state { font-weight: 700; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
-  .s-active { background: #0e3b2c; color: var(--accent); }
-  .s-claimfiled { background: #3b300e; color: var(--warn); }
-  .s-disputed { background: #3b0e1c; color: var(--bad); }
-  .s-settled, .s-released { background: #1c2330; color: var(--muted); }
-  .pipeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .step { font-size: 11px; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--line); color: var(--muted); }
-  .step.on { border-color: var(--accent); color: var(--accent); }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-  .log { margin-top: 22px; background: #0e1118; border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-height: 48px; font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
-  a { color: var(--accent); }
-  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
-  .pill { display:inline-block; width:9px; height:9px; border-radius:50%; background: var(--bad); margin-right:6px; vertical-align: middle; }
-  .pill.ok { background: var(--accent); }
+  input:focus { outline:none; border-color:var(--forest); }
+  .row { display:flex; gap:12px; } .row>*{ flex:1; }
+  .mono { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .hint { color:var(--muted); font-size:12.5px; margin-top:8px; }
+
+  .kv { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px dashed var(--line); }
+  .kv:last-of-type { border-bottom:none; }
+  .kv .k { color:var(--muted); }
+  .state { font-weight:600; padding:3px 12px; border-radius:999px; font-size:12.5px; }
+  .s-active{ background:var(--forest-tint); color:var(--forest);} .s-claimfiled{ background:var(--amber-tint); color:var(--amber);}
+  .s-disputed{ background:var(--bad-tint); color:var(--bad);} .s-settled,.s-released{ background:var(--paper2); color:var(--muted);}
+  .pipeline{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .step-chip{ font-size:11.5px; padding:5px 11px; border-radius:8px; border:1px solid var(--line); color:var(--muted); background:#fffdf9; }
+  .step-chip.on{ border-color:var(--forest); color:var(--forest); background:var(--forest-tint); }
+
+  .log{ margin-top:18px; background:#fffdf9; border:1px solid var(--line); border-radius:14px; padding:15px; min-height:48px; font-family:ui-monospace,monospace; font-size:12.5px; color:var(--muted); white-space:pre-wrap; word-break:break-all; }
+
+  footer{ padding:36px 0 60px; color:var(--muted); font-size:13px; }
+  .foot-row{ display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center; }
+
+  .note{ background:var(--clay-tint); border:1px solid #e7c6b2; border-radius:16px; padding:22px 24px; }
+  .note h3{ margin:0 0 6px; font-size:16px; }
+  .note p{ margin:0; color:#7a4a33; font-size:14px; }
 </style>
 </head>
 <body>
+
 <div class="wrap">
-  <header>
-    <div>
-      <h1><span>Deposit Escrow</span> — rental security deposits on Solana</h1>
-      <div class="sub">Non-custodial. The deposit lives in a program-controlled vault PDA, released only by on-chain rules.</div>
+  <nav>
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M16 3 4 12v17h24V12L16 3Z" fill="#2f5d50"/><circle cx="16" cy="17" r="3.4" fill="#f5efe4"/><rect x="14.7" y="18.5" width="2.6" height="6" rx="1.3" fill="#f5efe4"/></svg>
+      <span>Keyhold</span>
     </div>
-    <div style="text-align:right">
-      <span class="badge">devnet</span>
-      <div style="margin-top:8px"><button id="connect">Connect Phantom</button></div>
-      <div class="sub mono" id="wallet"></div>
+    <div class="nav-right">
+      <span class="pill">Solana · devnet</span>
+      <button id="connect">Connect Phantom</button>
+      <span class="wallet-addr" id="wallet"></span>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="eyebrow">● Non-custodial deposit escrow</span>
+      <h1 class="title serif">Your deposit, held by <em>code</em> — not your landlord.</h1>
+      <p class="lead">When you rent, your security deposit sits in a vault that only the agreed rules can open. No one can run off with it. No more chasing a refund when you move out.</p>
+      <div class="cta-row">
+        <button class="primary" onclick="document.getElementById('try').scrollIntoView()">See a live escrow</button>
+        <button class="ghost" onclick="document.getElementById('how').scrollIntoView()">How it works</button>
+      </div>
+      <div class="trust">
+        <div><b>0</b>middlemen holding cash</div>
+        <div><b>~$0.0001</b>to settle on-chain</div>
+        <div><b>SOL · USDC</b>deposit in either</div>
+      </div>
+    </div>
+    <div class="art">
+      <svg class="house" viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="320" rx="20" fill="#efe7d8"/>
+        <path d="M80 170 200 80 320 170v110a8 8 0 0 1-8 8H88a8 8 0 0 1-8-8V170Z" fill="#fbf7ef" stroke="#2f5d50" stroke-width="3"/>
+        <path d="M64 178 200 74l136 104" stroke="#2f5d50" stroke-width="6" stroke-linecap="round"/>
+        <rect x="150" y="208" width="44" height="80" rx="6" fill="#2f5d50"/>
+        <rect x="222" y="206" width="50" height="44" rx="6" fill="#dce9e3" stroke="#2f5d50" stroke-width="2.5"/>
+        <circle cx="247" cy="228" r="3" fill="#2f5d50"/>
+        <path d="M200 110l8 16 18 2-13 13 3 18-16-9-16 9 3-18-13-13 18-2 8-16Z" fill="#c0613b" opacity=".9"/>
+      </svg>
+      <svg class="floatkey" viewBox="0 0 200 120" fill="none">
+        <circle cx="46" cy="60" r="30" fill="none" stroke="#c0613b" stroke-width="11"/>
+        <rect x="70" y="53" width="110" height="14" rx="7" fill="#c0613b"/>
+        <rect x="150" y="53" width="13" height="30" rx="4" fill="#c0613b"/>
+        <rect x="172" y="53" width="13" height="24" rx="4" fill="#c0613b"/>
+      </svg>
     </div>
   </header>
-
-  <div class="grid">
-    <div class="card">
-      <h2>Create escrow (tenant)</h2>
-      <label>Landlord address</label>
-      <input id="c-landlord" class="mono" placeholder="landlord pubkey" />
-      <div class="row">
-        <div><label>Deposit (SOL)</label><input id="c-amount" value="0.1" /></div>
-        <div><label>Lease (days)</label><input id="c-lease" value="30" /></div>
-      </div>
-      <div class="actions">
-        <button class="primary" id="create" disabled>Lock deposit</button>
-      </div>
-      <div class="hint">Connect Phantom first. You (the connected wallet) are the tenant.</div>
-    </div>
-
-    <div class="card">
-      <h2>Inspect escrow</h2>
-      <label>Landlord address</label>
-      <input id="i-landlord" class="mono" placeholder="landlord pubkey" />
-      <label>Tenant address</label>
-      <input id="i-tenant" class="mono" placeholder="tenant pubkey" />
-      <div class="actions">
-        <button id="load">Load state</button>
-        <button id="usemine" disabled>Use my wallet as tenant</button>
-      </div>
-      <div id="state"></div>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:18px">
-    <h2>Lifecycle actions</h2>
-    <div class="sub">Buttons enable based on the loaded escrow's state and your connected wallet's role.</div>
-    <div class="actions" id="lifecycle">
-      <button data-act="file_claim" disabled>File claim (landlord)</button>
-      <button data-act="accept" disabled>Accept claim (tenant)</button>
-      <button data-act="dispute" disabled>Dispute (tenant)</button>
-      <button data-act="timeout" disabled>Claim timeout (anyone)</button>
-      <button data-act="release" disabled>Release (anyone)</button>
-      <button data-act="close" disabled>Close &amp; reclaim rent</button>
-    </div>
-    <div class="hint" id="claim-hint" style="display:none">
-      <label>Claim amount (SOL)</label><input id="claim-amt" value="0.05" style="max-width:180px" />
-    </div>
-  </div>
-
-  <div class="log" id="log">Ready. Connect Phantom to create or sign, or just load any escrow to inspect it read-only.</div>
-
-  <div class="sub" style="margin-top:18px">
-    Program <span class="mono" id="pid"></span> ·
-    <a id="pid-link" target="_blank">view on Explorer</a>
-  </div>
 </div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">How it works</div>
+      <h2 class="serif">A lease, but the deposit can't be held hostage.</h2>
+      <p>The same four moves as a paper tenancy — only the money is guarded by a program, and every step is on the public record.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="n">01</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <h3>Tenant locks the deposit</h3>
+        <p>You move the deposit into a vault PDA at the start of the lease. It leaves your wallet but reaches no one else's.</p>
+      </div>
+      <div class="step">
+        <div class="n">02</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12s3-7 9-7 9 7 9 7-3 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+        <h3>Lease ends, landlord may claim</h3>
+        <p>Only after the lease-end date — never before — the landlord can claim part of the deposit for genuine damage.</p>
+      </div>
+      <div class="step">
+        <div class="n">03</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 6 9 17l-5-5"/></svg>
+        <h3>Tenant accepts or disputes</h3>
+        <p>Agree and the split settles instantly. Disagree and the funds freeze — safe — for an off-chain arbiter to weigh in.</p>
+      </div>
+      <div class="step">
+        <div class="n">04</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+        <h3>No claim? Auto-refund</h3>
+        <p>If the landlord files nothing within the grace window, anyone can trigger the full refund back to the tenant.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="app" id="try">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Try it on devnet</div>
+      <h2 class="serif">Inspect a live escrow, or open your own.</h2>
+      <p>Reading state needs no wallet — it pulls straight from Solana devnet. Creating or signing uses Phantom.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 class="ch">Open an escrow</h3>
+        <p class="csub">You — the connected wallet — are the tenant.</p>
+        <label>Landlord address</label>
+        <input id="c-landlord" class="mono" placeholder="landlord pubkey" />
+        <div class="row">
+          <div><label>Deposit (SOL)</label><input id="c-amount" value="0.1" /></div>
+          <div><label>Lease (days)</label><input id="c-lease" value="30" /></div>
+        </div>
+        <div class="actions"><button class="primary" id="create" disabled>Lock deposit</button></div>
+        <div class="hint">Connect Phantom to enable.</div>
+      </div>
+
+      <div class="card">
+        <h3 class="ch">Inspect an escrow</h3>
+        <p class="csub">Live on-chain state for any landlord / tenant pair.</p>
+        <label>Landlord address</label>
+        <input id="i-landlord" class="mono" placeholder="landlord pubkey" />
+        <label>Tenant address</label>
+        <input id="i-tenant" class="mono" placeholder="tenant pubkey" />
+        <div class="actions">
+          <button id="load">Load state</button>
+          <button id="usemine" disabled>Use my wallet</button>
+        </div>
+        <div id="state"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3 class="ch">Lifecycle</h3>
+      <p class="csub">Each action enables based on the loaded escrow's state and your role.</p>
+      <div class="actions" id="lifecycle">
+        <button data-act="file_claim" disabled>File claim · landlord</button>
+        <button data-act="accept" disabled>Accept · tenant</button>
+        <button data-act="dispute" disabled>Dispute · tenant</button>
+        <button data-act="timeout" disabled>Claim timeout · anyone</button>
+        <button data-act="release" disabled>Release · anyone</button>
+        <button data-act="close" disabled>Close &amp; reclaim rent</button>
+      </div>
+      <div class="hint" id="claim-hint" style="display:none">
+        <label>Claim amount (SOL)</label><input id="claim-amt" value="0.05" style="max-width:180px" />
+      </div>
+      <div class="log" id="log">Ready. Load any escrow to inspect it read-only, or connect Phantom to act.</div>
+    </div>
+
+    <div class="note" style="margin-top:18px">
+      <h3 class="serif">One honest limitation</h3>
+      <p>A blockchain can't inspect an apartment. It won't judge whether the carpet is really stained. So a dispute doesn't get "decided" here — it <b>freezes the deposit, untouched</b>, and hands off to a human arbiter. The guarantee is custody and process, not a verdict on the damage.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div class="brand"><svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M16 3 4 12v17h24V12L16 3Z" fill="#2f5d50"/><circle cx="16" cy="17" r="3.4" fill="#f5efe4"/><rect x="14.7" y="18.5" width="2.6" height="6" rx="1.3" fill="#f5efe4"/></svg><span>Keyhold</span></div>
+    <div>Program <span class="mono" id="pid"></span> · <a id="pid-link" target="_blank">Explorer ↗</a></div>
+  </div>
+</footer>
 
 <script type="module" src="./app.js"></script>
 </body>

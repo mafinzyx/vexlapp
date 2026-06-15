@@ -130,7 +130,7 @@ function render(acct, escrow, vault, vaultBal) {
     <div class="kv"><span class="k">Lease ends</span><span>${leaseDate} UTC</span></div>
     <div class="kv"><span class="k">Claim</span><span>${acct.claimAmount.toNumber() / LAMPORTS_PER_SOL} SOL</span></div>
     <div class="kv"><span class="k">Escrow PDA</span><span class="mono">${escrow.toBase58().slice(0, 8)}…</span></div>
-    <div class="pipeline">${steps.map(s => `<span class="step ${reached(s) ? "on" : ""}">${s}</span>`).join("")}</div>`;
+    <div class="pipeline">${steps.map(s => `<span class="step-chip ${reached(s) ? "on" : ""}">${s}</span>`).join("")}</div>`;
 }
 
 // ---------- lifecycle ----------

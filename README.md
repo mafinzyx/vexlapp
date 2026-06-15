@@ -255,18 +255,20 @@ deposit, files + settles a claim, then closes):
 yarn ts-node cli/token-demo.ts
 ```
 
-### Web dashboard
+### Web app — "Keyhold"
 
-A zero-build single-page app in [`app/`](app/) connects **Phantom** and drives the
-full SOL lifecycle, with a live read-only view of any escrow's on-chain state and a
-visual stage pipeline. Inspecting an escrow needs no wallet — it reads straight from
-devnet; creating or signing actions uses Phantom.
+A zero-build single-page product site in [`app/`](app/) — warm proptech design
+(editorial serif, paper palette, house-and-key motif) that makes the rental context
+obvious at a glance. It connects **Phantom** and drives the full SOL lifecycle, with a
+live read-only view of any escrow's on-chain state and a visual stage pipeline.
+Inspecting an escrow needs no wallet — it reads straight from devnet; creating or
+signing actions uses Phantom.
 
 ```bash
 cd app && python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
-![dashboard](app/screenshot.png)
+![Keyhold web app](app/screenshot.png)
 
 ## Project layout
 
