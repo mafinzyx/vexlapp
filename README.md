@@ -224,7 +224,9 @@ token-escrow (USDC-like)
 
 ## Try it live
 
-The **VEXL** web app is deployed on Vercel — open the live URL and use it right away,
+**→ [vexlapp.vercel.app](https://vexlapp.vercel.app/)**
+
+The **VEXL** web app is deployed on Vercel — open it and use it right away,
 no setup. It connects **Phantom** and drives the full SOL lifecycle, with a live
 read-only view of any escrow's on-chain state and a visual stage pipeline. Inspecting
 an escrow needs no wallet — it reads straight from devnet; signing actions uses Phantom.
