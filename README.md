@@ -232,8 +232,8 @@ read-only view of any escrow's on-chain state and a visual stage pipeline. Inspe
 an escrow needs no wallet — it reads straight from devnet; signing actions uses Phantom.
 
 On the site, the **"Verify it in 4 steps"** guide and a one-click **"Try the demo
-escrow"** button let anyone inspect a live devnet escrow without a wallet. A short
-animated walkthrough is on X — see [@vexllapp](https://x.com/vexllapp).
+escrow"** button let anyone inspect a live devnet escrow without a wallet. The full
+write-up is on X — [@vexllapp](https://x.com/vexllapp/status/2066533096309076156).
 
 ![VEXL web app](app/screenshot.png)
 
