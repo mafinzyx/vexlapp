@@ -343,4 +343,143 @@ describe("deposit-escrow", () => {
     }
     assert.isTrue(failed);
   });
+
+  // ---- Negative / adversarial ----
+  it("file_claim: rejected when signed by someone other than the landlord", async () => {
+    const { context, program, tenant, landlord, escrow, vault } = await setup();
+    const leaseEnd = (await nowUnix(context)) + 30 * DAY;
+    await program.methods
+      .initialize(new anchor.BN(2 * LAMPORTS_PER_SOL), new anchor.BN(leaseEnd))
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+    await warpToUnix(context, leaseEnd + DAY);
+
+    const attacker = Keypair.generate();
+    let failed = false;
+    try {
+      // Pass the real landlord pubkey but sign as the attacker — no landlord signature.
+      await program.methods
+        .fileClaim(new anchor.BN(LAMPORTS_PER_SOL))
+        .accounts({ landlord: landlord.publicKey, tenant: tenant.publicKey, escrow })
+        .signers([attacker])
+        .rpc();
+    } catch (e: any) {
+      failed = true;
+    }
+    assert.isTrue(failed, "a non-landlord must not be able to file a claim");
+  });
+
+  it("accept_claim: rejected when signed by someone other than the tenant", async () => {
+    const { context, program, tenant, landlord, escrow, vault } = await setup();
+    const leaseEnd = (await nowUnix(context)) + 30 * DAY;
+    await program.methods
+      .initialize(new anchor.BN(2 * LAMPORTS_PER_SOL), new anchor.BN(leaseEnd))
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+    await warpToUnix(context, leaseEnd + DAY);
+    await program.methods
+      .fileClaim(new anchor.BN(LAMPORTS_PER_SOL))
+      .accounts({ landlord: landlord.publicKey, tenant: tenant.publicKey, escrow })
+      .signers([landlord])
+      .rpc();
+
+    const attacker = Keypair.generate();
+    let failed = false;
+    try {
+      await program.methods
+        .acceptClaim()
+        .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+        .signers([attacker])
+        .rpc();
+    } catch (e: any) {
+      failed = true;
+    }
+    assert.isTrue(failed, "a non-tenant must not be able to accept a claim");
+  });
+
+  it("accept_claim: rejected a second time (already settled)", async () => {
+    const { context, program, tenant, landlord, escrow, vault } = await setup();
+    const leaseEnd = (await nowUnix(context)) + 30 * DAY;
+    await program.methods
+      .initialize(new anchor.BN(2 * LAMPORTS_PER_SOL), new anchor.BN(leaseEnd))
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+    await warpToUnix(context, leaseEnd + DAY);
+    await program.methods
+      .fileClaim(new anchor.BN(LAMPORTS_PER_SOL))
+      .accounts({ landlord: landlord.publicKey, tenant: tenant.publicKey, escrow })
+      .signers([landlord])
+      .rpc();
+    await program.methods
+      .acceptClaim()
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+
+    let failed = false;
+    try {
+      await program.methods
+        .acceptClaim()
+        .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+        .rpc();
+    } catch (e: any) {
+      failed = true;
+      assert.include(e.toString(), "InvalidState");
+    }
+    assert.isTrue(failed, "double settlement must be rejected");
+  });
+
+  // ---- close_escrow (rent reclamation) ----
+  it("close_escrow: rejected while the escrow is still active", async () => {
+    const { context, program, tenant, landlord, escrow, vault } = await setup();
+    const leaseEnd = (await nowUnix(context)) + 30 * DAY;
+    await program.methods
+      .initialize(new anchor.BN(2 * LAMPORTS_PER_SOL), new anchor.BN(leaseEnd))
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+
+    let failed = false;
+    try {
+      await program.methods
+        .closeEscrow()
+        .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow })
+        .rpc();
+    } catch (e: any) {
+      failed = true;
+      assert.include(e.toString(), "NotClosable");
+    }
+    assert.isTrue(failed, "an active escrow must not be closable");
+  });
+
+  it("close_escrow: closes the data account and returns rent after settlement", async () => {
+    const { context, program, tenant, landlord, escrow, vault } = await setup();
+    const leaseEnd = (await nowUnix(context)) + 30 * DAY;
+    await program.methods
+      .initialize(new anchor.BN(2 * LAMPORTS_PER_SOL), new anchor.BN(leaseEnd))
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+    await warpToUnix(context, leaseEnd + DAY);
+    await program.methods
+      .fileClaim(new anchor.BN(LAMPORTS_PER_SOL))
+      .accounts({ landlord: landlord.publicKey, tenant: tenant.publicKey, escrow })
+      .signers([landlord])
+      .rpc();
+    await program.methods
+      .acceptClaim()
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow, vault, systemProgram: SystemProgram.programId })
+      .rpc();
+
+    const rent = await lamports(context, escrow); // data account's rent reserve
+    assert.isAbove(rent, 0);
+    const tenantBefore = await lamports(context, tenant.publicKey);
+
+    await program.methods
+      .closeEscrow()
+      .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow })
+      .rpc();
+
+    // Data account is gone, and its rent went back to the tenant.
+    assert.equal(await lamports(context, escrow), 0, "escrow account closed");
+    const tenantAfter = await lamports(context, tenant.publicKey);
+    assert.isAtLeast(tenantAfter - tenantBefore, rent - 10000);
+  });
 });

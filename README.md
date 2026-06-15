@@ -103,9 +103,15 @@ authorizes.
 | `dispute_claim()` | tenant | state `ClaimFiled`, within window | state → `Disputed`, vault frozen |
 | `claim_timeout()` | anyone | state `ClaimFiled`, window elapsed | settles in landlord's favor, → `Settled` |
 | `release()` | anyone | state `Active`, now ≥ `lease_end + 3d` | full refund to tenant, → `Released` |
+| `close_escrow()` | anyone | state `Settled` or `Released` | closes the data account, returns its rent to the tenant |
 
-`claim_timeout` and `release` are **permissionless** — anyone can crank them once the
-clock allows, so funds never get stuck because the party who benefits forgot to act.
+`claim_timeout`, `release`, and `close_escrow` are **permissionless** — anyone can
+crank them once the state allows, so funds never get stuck because the party who
+benefits forgot to act, and rent is reclaimed instead of leaking forever.
+
+Every instruction emits an Anchor **event** (`EscrowInitialized`, `ClaimFiled`,
+`ClaimResolved`, `ClaimDisputed`, `DepositReleased`, `EscrowClosed`) so an indexer or
+frontend can follow each escrow's lifecycle without polling account state.
 
 ---
 
@@ -133,25 +139,25 @@ judge" is worse than an honest hand-off.
 
 ## Live on devnet
 
-The full happy path, run end-to-end with real SOL on devnet:
+The full lifecycle — deposit, claim, settlement, and rent reclamation — run
+end-to-end with real SOL on devnet:
 
 | Step | What happened | Transaction |
 |---|---|---|
-| Deploy | program published | [`GtztEz…sevHZt`](https://explorer.solana.com/tx/GtztEzwAWe1dVm2LRMXEZsgKfvMp5woYhbzE9cvcATb1Va7EuEmSaawFovHzGymdrZGPPLyUGXTGauq29sevHZt?cluster=devnet) |
-| `initialize` | tenant locks 0.2 SOL | [`DV8Wsi…18MykX`](https://explorer.solana.com/tx/DV8Wsit7zhUPQ9nZzeUEfHod3GQNoD5EsfnPFHNhbufr8rb9YiPSHYoiEJPktgAzDc6P4Doa4wMoQ2Nht18MykX?cluster=devnet) |
-| `file_claim` | landlord claims 0.08 SOL for damage | [`4iqnyt…dko7`](https://explorer.solana.com/tx/4iqnytoP4m4KeS18QEumKun7KFMmpmcyAyq3Vx629DpkuRAzsDCQxa9e2Pok6MpG2etk4ZMgbuyC3Kg1H2ezdko7?cluster=devnet) |
-| `accept_claim` | tenant accepts → 0.08 to landlord, 0.12 back to tenant | [`5xFrsf…3CDt`](https://explorer.solana.com/tx/5xFrsfSeoVfj24eHC71jnpiY7f3BsaHpRgrpLy6He8VTqPaad1Xqekvha813oR2KcnPT1Q85hS61FGZwWtKV3CDt?cluster=devnet) |
+| `initialize` | tenant locks 0.15 SOL | [`5dmW2Z…CuurZb`](https://explorer.solana.com/tx/5dmW2Zp9mqJtr5jhUWBkbxsiwfjJdaKsyBNbPAvWGyTtk3mir3m1xygWBP7A2nJj6Cq6Ui99pkRKuDqUJMCuurZb?cluster=devnet) |
+| `file_claim` | landlord claims 0.05 SOL for damage | [`4cbd1v…jwPxMu`](https://explorer.solana.com/tx/4cbd1vHyUQq11nhCqtrfYMaqUXRbFUVQfan8dZPUj4xULmdw2VN4erYmw62UPzZxG5z4iBrXECPSxTxjihjwPxMu?cluster=devnet) |
+| `accept_claim` | tenant accepts → 0.05 to landlord, 0.10 back to tenant | [`2YMkC1…sLAeQek`](https://explorer.solana.com/tx/2YMkC1nZYqrvixvs6e8AQJbdHFWwrdR7FkQXBmkPTyLjk2xDXMiTrXJZHx9AwAMa1P8REMD3KxwTSLBLxsLAeQek?cluster=devnet) |
+| `close_escrow` | data account closed, rent returned to tenant | [`2qrKXM…ZHafCLj`](https://explorer.solana.com/tx/2qrKXMixJjEpV8DjL6tvshNd2CbUiYXc363wSMH5AUMafWCigQJrpZm9Dv4QvkMXaX6NA6uBvtWvTipzVZHafCLj?cluster=devnet) |
 
-Accounts from that run:
-- escrow PDA: [`FK3H74F5rco2bpH8Bcy3Mpd5QmDrErDY9Fi5j7k5DqyR`](https://explorer.solana.com/address/FK3H74F5rco2bpH8Bcy3Mpd5QmDrErDY9Fi5j7k5DqyR?cluster=devnet)
-- vault PDA: [`D2Z6VhGrQzKLqxxiGhgognBy6TeeAgNd8TrHdVa9rFqA`](https://explorer.solana.com/address/D2Z6VhGrQzKLqxxiGhgognBy6TeeAgNd8TrHdVa9rFqA?cluster=devnet)
+Program (upgradeable) on devnet:
+[`Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm`](https://explorer.solana.com/address/Em436QuUeGG4g6ErrABWnbjjDBEPLnzoPVDXmQ6o2hYm?cluster=devnet)
 
 ---
 
 ## Tests
 
-All six instructions and their edge cases are covered by an
-[`anchor-bankrun`](https://github.com/kevinheavey/anchor-bankrun) suite (11 tests).
+All seven instructions, their edge cases, and adversarial paths are covered by an
+[`anchor-bankrun`](https://github.com/kevinheavey/anchor-bankrun) suite (16 tests).
 Bankrun runs against the real SBF program in-process and lets us **warp the validator
 clock**, which is the only practical way to test the lease-end gate, the 5-day claim
 window, and the 3-day release grace.
@@ -169,8 +175,13 @@ deposit-escrow
   ✔ claim_timeout: rejected before the deadline
   ✔ release: full refund to tenant after grace period with no claim
   ✔ release: rejected before the grace period ends
+  ✔ file_claim: rejected when signed by someone other than the landlord
+  ✔ accept_claim: rejected when signed by someone other than the tenant
+  ✔ accept_claim: rejected a second time (already settled)
+  ✔ close_escrow: rejected while the escrow is still active
+  ✔ close_escrow: closes the data account and returns rent after settlement
 
-  11 passing
+  16 passing
 ```
 
 ---
@@ -197,13 +208,14 @@ yarn cli show               # inspect on-chain escrow state
 # after lease_end:
 yarn cli file-claim 0.08    # landlord claims 0.08 SOL for damage
 yarn cli accept             # tenant accepts → deposit split
+yarn cli close              # reclaim the data account's rent for the tenant
 # alternatives: yarn cli dispute | yarn cli timeout | yarn cli release
 ```
 
 ## Project layout
 
 ```
-programs/deposit-escrow/src/lib.rs   the on-chain program (6 instructions, 2 PDAs)
-tests/deposit-escrow.ts              bankrun test suite (11 tests)
+programs/deposit-escrow/src/lib.rs   the on-chain program (7 instructions, 2 PDAs)
+tests/deposit-escrow.ts              bankrun test suite (16 tests)
 cli/index.ts                         devnet CLI for the full lifecycle
 ```

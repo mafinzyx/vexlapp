@@ -39,11 +39,13 @@ pub mod deposit_escrow {
         );
         system_program::transfer(cpi, amount)?;
 
-        msg!(
-            "Escrow initialized: {} lamports, lease_end {}",
+        emit!(EscrowInitialized {
+            escrow: escrow.key(),
+            landlord: escrow.landlord,
+            tenant: escrow.tenant,
             amount,
-            lease_end
-        );
+            lease_end,
+        });
         Ok(())
     }
 
@@ -67,11 +69,11 @@ pub mod deposit_escrow {
         escrow.claim_amount = claim_amount;
         escrow.claim_deadline = clock.unix_timestamp + CLAIM_RESPONSE_WINDOW;
 
-        msg!(
-            "Claim filed: {} lamports; respond by {}",
+        emit!(ClaimFiled {
+            escrow: escrow.key(),
             claim_amount,
-            escrow.claim_deadline
-        );
+            deadline: escrow.claim_deadline,
+        });
         Ok(())
     }
 
@@ -106,11 +108,12 @@ pub mod deposit_escrow {
         )?;
 
         ctx.accounts.escrow.state = EscrowState::Settled;
-        msg!(
-            "Claim accepted: landlord {} / tenant refund {}",
-            claim_amount,
-            refund_amount
-        );
+        emit!(ClaimResolved {
+            escrow: escrow_key,
+            to_landlord: claim_amount,
+            to_tenant: refund_amount,
+            by_timeout: false,
+        });
         Ok(())
     }
 
@@ -126,7 +129,10 @@ pub mod deposit_escrow {
             EscrowError::ClaimExpired
         );
         escrow.state = EscrowState::Disputed;
-        msg!("Claim disputed: vault frozen pending off-chain arbitration");
+
+        emit!(ClaimDisputed {
+            escrow: escrow.key(),
+        });
         Ok(())
     }
 
@@ -165,7 +171,12 @@ pub mod deposit_escrow {
         )?;
 
         ctx.accounts.escrow.state = EscrowState::Settled;
-        msg!("Claim timed out: landlord received {}", claim_amount);
+        emit!(ClaimResolved {
+            escrow: escrow_key,
+            to_landlord: claim_amount,
+            to_tenant: refund_amount,
+            by_timeout: true,
+        });
         Ok(())
     }
 
@@ -192,7 +203,25 @@ pub mod deposit_escrow {
         )?;
 
         ctx.accounts.escrow.state = EscrowState::Released;
-        msg!("Deposit released to tenant: {}", amount);
+        emit!(DepositReleased {
+            escrow: escrow_key,
+            amount,
+        });
+        Ok(())
+    }
+
+    /// Permissionless cleanup: once the escrow reaches a terminal state and the vault
+    /// is empty, close the data account and return its rent to the tenant who paid it.
+    pub fn close_escrow(ctx: Context<CloseEscrow>) -> Result<()> {
+        let escrow = &ctx.accounts.escrow;
+        require!(
+            matches!(escrow.state, EscrowState::Settled | EscrowState::Released),
+            EscrowError::NotClosable
+        );
+
+        emit!(EscrowClosed {
+            escrow: escrow.key(),
+        });
         Ok(())
     }
 }
@@ -225,6 +254,7 @@ fn vault_pay<'info>(
 // ---- Account data ----
 
 #[account]
+#[derive(InitSpace)]
 pub struct DepositEscrow {
     pub landlord: Pubkey,
     pub tenant: Pubkey,
@@ -237,17 +267,56 @@ pub struct DepositEscrow {
     pub vault_bump: u8,
 }
 
-impl DepositEscrow {
-    pub const LEN: usize = 8 + 32 + 32 + 8 + 8 + 1 + 8 + 8 + 1 + 1;
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, InitSpace)]
 pub enum EscrowState {
     Active,
     ClaimFiled,
     Released,
     Settled,
     Disputed,
+}
+
+// ---- Events ----
+
+#[event]
+pub struct EscrowInitialized {
+    pub escrow: Pubkey,
+    pub landlord: Pubkey,
+    pub tenant: Pubkey,
+    pub amount: u64,
+    pub lease_end: i64,
+}
+
+#[event]
+pub struct ClaimFiled {
+    pub escrow: Pubkey,
+    pub claim_amount: u64,
+    pub deadline: i64,
+}
+
+#[event]
+pub struct ClaimResolved {
+    pub escrow: Pubkey,
+    pub to_landlord: u64,
+    pub to_tenant: u64,
+    /// false = tenant accepted; true = settled by timeout crank.
+    pub by_timeout: bool,
+}
+
+#[event]
+pub struct ClaimDisputed {
+    pub escrow: Pubkey,
+}
+
+#[event]
+pub struct DepositReleased {
+    pub escrow: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct EscrowClosed {
+    pub escrow: Pubkey,
 }
 
 // ---- Contexts ----
@@ -261,7 +330,7 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = tenant,
-        space = DepositEscrow::LEN,
+        space = 8 + DepositEscrow::INIT_SPACE,
         seeds = [b"escrow", landlord.key().as_ref(), tenant.key().as_ref()],
         bump
     )]
@@ -380,6 +449,24 @@ pub struct Release<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct CloseEscrow<'info> {
+    /// CHECK: tenant receives the reclaimed rent; bound by escrow seeds.
+    #[account(mut)]
+    pub tenant: AccountInfo<'info>,
+    /// CHECK: landlord pubkey bound by escrow seeds.
+    pub landlord: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [b"escrow", landlord.key().as_ref(), tenant.key().as_ref()],
+        bump = escrow.bump,
+        has_one = landlord,
+        has_one = tenant,
+        close = tenant,
+    )]
+    pub escrow: Account<'info, DepositEscrow>,
+}
+
 // ---- Errors ----
 
 #[error_code]
@@ -400,4 +487,6 @@ pub enum EscrowError {
     ClaimNotExpired,
     #[msg("Too early to release — wait for the grace period after lease end")]
     TooEarlyToRelease,
+    #[msg("Escrow can only be closed from a terminal state (Settled or Released)")]
+    NotClosable,
 }

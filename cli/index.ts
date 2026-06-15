@@ -166,6 +166,15 @@ async function main() {
       console.log("  ", explorer(sig));
       break;
     }
+    case "close": {
+      const sig = await program.methods
+        .closeEscrow()
+        .accounts({ tenant: tenant.publicKey, landlord: landlord.publicKey, escrow })
+        .rpc();
+      console.log("✅ escrow closed — rent returned to tenant");
+      console.log("  ", explorer(sig));
+      break;
+    }
     case "show": {
       const acct = await (program.account as any).depositEscrow.fetch(escrow);
       const state = Object.keys(acct.state as object)[0];
@@ -181,7 +190,7 @@ async function main() {
     }
     default:
       console.log(
-        "usage: yarn cli <init|fund-landlord|file-claim|accept|dispute|timeout|release|show> [args]"
+        "usage: yarn cli <init|fund-landlord|file-claim|accept|dispute|timeout|release|close|show> [args]"
       );
   }
 }
